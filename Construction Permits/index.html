@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>Davidson County, TN Avg Construction Costs</title>
+<header>
+<h1> Davison County, TN Average Construction Costs</h1>
+<h2> Boundaries represent Council Districts</h2>
+</header>
 <style>
 
 path {
@@ -16,6 +20,7 @@ div.tooltip {
         border-radius: 2px;
         opacity: 0.9;
         position: absolute;
+
     }
 
 </style>
@@ -90,7 +95,7 @@ key.append("g").attr("class", "y axis").attr("transform", "translate(42,10)").ca
       .attr("d", path)
 	  .style("fill", function(d) {
 	  return color(d.properties.constcost);})
-	  .on("mouseover", function(d){return tooltip.style("visibility", "visible").text("$" + d.properties.constcost);})
+	  .on("mouseover", function(d){return tooltip.style("visibility", "visible").text("District " + d.properties.district + " - $" + d.properties.constcost);})
 	  .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
 	  .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 	  });
