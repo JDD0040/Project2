@@ -4,48 +4,123 @@
   <script src="http://dimplejs.org/lib/d3.v3.4.8.js"></script>
   <script src="http://dimplejs.org/dist/dimple.v2.2.0.min.js"></script>
   <script type="text/javascript">
-    var svg = dimple.newSvg("#chartContainer", 960, 960);
+    var svg = dimple.newSvg("#chartContainer", 860, 860);
       d3.tsv("resdsales.tsv", function (data) {
         
         // Filter the data for a single channel
-        data = dimple.filterData(data, "Channel", "SINGLE FAMILY");
+	  data = dimple.filterData(data, "Month", [
+		  "Jan-15", "Feb-15", "Mar-15", "Apr-15", "May-15", "Jun-15",
+		  "Jul-15", "Aug-15", "Sep-15", "Oct-15", "Nov-15", "Dec-15"
+	  ]);
         
+		var indicator = new dimple.chart(svg,data);
+		
+		var defaultColor = indicator.defaultColors[0];
+		var indicatorColor = indicator.defaultColors[2];
+		
+		var frame = 10000;
+		var firstTick = true;
+		
+		indicator.setBounds(700, 49, 153, 331);
+		
+		var y = indicator.addCategoryAxis("y","Month");
+		y.addOrderRule("Date","Desc");
+		
+		var x = indicator.addMeasureAxis("x","Price");
+		x.hidden = true;
+		
+		var s = indicator.addSeries(null, dimple.plot.bar);
+		s.addEventHandler("click",onClick);
+		indicator.draw();
+		
+		y.titleShape.remove();
+		y.shapes.selectAll("line,path").remove();
+		y.shapes.selectAll("text")
+			.style("text-anchor","start")
+			.style("font-size", "12px")
+			.style("transform", "translate(360, 0.5");
+		
+		svg.selectAll("title_text")
+			  .data(["Click bar to select",
+				  "and pause. Click again",
+				  "to resume animation"])
+			  .enter()
+			  .append("text")
+			  .attr("x", 701)
+			  .attr("y", function (d, i) { return 15 + i * 12; })
+			  .style("font-family", "sans-serif")
+			  .style("font-size", "10px")
+			  .style("color", "Black")
+			  .text(function (d) { return d; });
+			  
+		s.shapes
+			  .attr("rx", 10)
+			  .attr("ry", 10)
+			  .style("fill", function (d) { return (d.y === 'Jan-15' ? indicatorColor.fill : defaultColor.fill) })
+			  .style("stroke", function (d) { return (d.y === 'Jan-15' ? indicatorColor.stroke : defaultColor.stroke) })
+			  .style("opacity", 0.4);
+		
         // Create the chart
         var myChart = new dimple.chart(svg, data);
-        myChart.setBounds(60, 30, 660, 660)
+        myChart.setBounds(100, 50, 560, 560)
         
         // Add an x and 2 y-axes.  When using multiple axes it's
         // important to assign them to variables to pass to the series
         var x = myChart.addCategoryAxis("x", "Zone");
-        var y1 = myChart.addMeasureAxis("y", "Cost of Sales");
-		var y2 = myChart.addMeasureAxis("y", "Cost of Sales");
-		
-		
-		var frame = 10000;
-
+        var y = myChart.addMeasureAxis("y", "Cost of Sales");
+				y.tickFormat = ',.0f';  
+				
         // Order the x axis by sales value desc
         x.addOrderRule("Zone");
 
         // Color the sales bars to be highly transparent
-        myChart.assignColor("Sales", "#222222", "#000000", 0.1);
-        
-        // Add the bars mapped to the second y axis
-        var s = myChart.addSeries("Sales", dimple.plot.bar, [x, y2]);
-
+        myChart.assignColor("Sales", "#222222", "#000000", 0.2);
+       
         
         // Add series for minimum, average and maximum price
-        var min = myChart.addSeries("Min", dimple.plot.bubble, [x, y1]);
+        var min = myChart.addSeries("Min", dimple.plot.bubble, [x, y]);
         min.aggregate = dimple.aggregateMethod.min;
-        var avg = myChart.addSeries("Avg", dimple.plot.bubble, [x, y1]);
+        var avg = myChart.addSeries("Avg", dimple.plot.bubble, [x, y]);
         avg.aggregate = dimple.aggregateMethod.avg;
-        var max = myChart.addSeries("Max", dimple.plot.bubble, [x, y1]);
+        var max = myChart.addSeries("Max", dimple.plot.bubble, [x, y]);
         max.aggregate = dimple.aggregateMethod.max;
         
-        // Animate the chart for every date value, any dimension can be passed
+		// Animate the chart for every date value, any dimension can be passed
         // here and dimple will animate over its values.
-        myChart.setStoryboard("Month")
-			.frameDuration = frame;
-		myChart.draw();		  
+		var story = myChart.setStoryboard("Month", onTick);
+		story.frameDuration = frame;
+
+		myChart.draw();
+
+		myChart.legends = [];
+		story.storyLabel.remove();
+		
+          // On click of the side chart
+          function onClick(e) {
+              // Pause the animation
+              story.pauseAnimation();
+              // If it is already selected resume the animation
+              // otherwise pause and move to the selected month
+              if (e.yValue === story.getFrameValue()) {
+                  story.startAnimation();
+              } else {
+                  story.goToFrame(e.yValue);
+                  story.pauseAnimation();
+              }
+          }
+		  
+          // On tick of the main charts storyboard
+          function onTick(e) {
+              if (!firstTick) {
+                  // Color all shapes the same
+                  s.shapes
+                          .transition()
+                          .duration(frame / 2)
+                          .style("fill", function (d) { return (d.y === e ? indicatorColor.fill : defaultColor.fill) })
+                          .style("stroke", function (d) { return (d.y === e ? indicatorColor.stroke : defaultColor.stroke) });
+              }
+              firstTick = false;
+		  }
 });
 
   </script>
